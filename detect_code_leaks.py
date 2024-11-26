@@ -1,6 +1,8 @@
 import os
 import re
 import openai
+import requests
+import subprocess
 
 # Securely load the OpenAI API key
 openai.api_key = os.getenv("OPENAI_API_KEY")
@@ -159,6 +161,33 @@ def detect_language_from_diff(diff):
     else:
         return "unknown"
 
+def fetch_github_diff(repo, pull_request_number):
+    """
+    Fetches the diff of a pull request from GitHub using the GitHub API.
+    :param repo: The GitHub repository in the format "owner/repo" (e.g., "octocat/Hello-World").
+    :param pull_request_number: The pull request number to fetch the diff for.
+    :return: The diff as a string.
+    """
+    # Load GitHub token from environment variable
+    github_token = os.getenv("GITHUB_TOKEN")
+    if not github_token:
+        raise EnvironmentError("GitHub token not found. Set GITHUB_TOKEN as an environment variable.")
+
+    # GitHub API endpoint for pull request diff
+    url = f"https://api.github.com/repos/{repo}/pulls/{pull_request_number}"
+    headers = {
+        "Authorization": f"token {github_token}",
+        "Accept": "application/vnd.github.v3.diff"
+    }
+
+    response = requests.get(url, headers=headers)
+
+    if response.status_code != 200:
+        raise Exception(f"Failed to fetch diff: {response.status_code}, {response.text}")
+
+    return response.text
+
+
 def main():
     # Example GitHub diff (replace with actual diff from GitHub API or file)
     diff = """
@@ -180,6 +209,10 @@ def main():
      # Paths
     java_project_path = "./out"  # Path to compiled Java project
     spotbugs_path = "./spotbugs/bin/spotbugs"  # Path to SpotBugs installation
+
+    repo_name = "owner/repository"  # Replace with the target repository
+    pull_request_number = 123  # Replace with the PR number
+    diff = fetch_github_diff(repo_name, pull_request_number)
 
 
     # Detect language
